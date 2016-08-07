@@ -1,16 +1,32 @@
-var game = new Phaser.Game(320, 192, Phaser.AUTO, 'game', { preload: preload, create: create, update: update });
+/*
+grafik-opgaver: 
+* Lav ny bane i simon.csv
+* sæt en dør på banen
+* sæt 4 powerups på banen
+* lav ny grafik i simon.png
+* lav nye navne til simon.csv, simon.png og spaceman.png
 
+kode-opgaver:
+* lave grafikken dobbel så stor (setuserscale)
+* en variable starter med "var" en funktion starter med "function" - hvad er der mest af ?
+* læs hvad funktionerne hedder og gæt hvad de gør
+* opdater "debug" teksten øverst på spil-skærmen til at vise værdien af powerup1
+* lav en ændring i speed, jumpSpeed og bounce for at se hvad de gør
+* kig på koden til powerup1. lav det samme for powerup2, powerup3 og powerup4 
+* lav kode til at sætte levelComplete til true hvis alle powerups er taget og vi er ved døren
+
+*/
+
+
+var game = new Phaser.Game(320, 192, Phaser.AUTO, 'game', { preload: preload, create: create, update: update });
 
 function preload() {
     game.scale.scaleMode = Phaser.ScaleManager.USER_SCALE;
-    game.scale.setUserScale(3, 3);
+    game.scale.setUserScale(1, 1);
 
     game.load.tilemap('map', 'assets/tilemaps/csv/simon.csv', null, Phaser.Tilemap.CSV);
     game.load.image('tiles', 'assets/tilemaps/tiles/simon.png');
     game.load.spritesheet('player', 'assets/sprites/spaceman.png', 16, 16);
-    
-
-
 }
 
 var map;
@@ -27,12 +43,10 @@ var bounce = 0.2;
 var onLadder = false;
 var onLadderTop = false;
 var inWater = false;
-var inDoor = false;
 var text;
+
 var powerup1 = false;
-var powerup2 = false;
-var powerup3 = false;
-var powerup4 = false;
+var levelComplete = false;
 
 
 function create() {
@@ -53,19 +67,13 @@ function create() {
     map.setCollisionBetween(0, 0);
     map.setCollisionBetween(7, 7);
     map.setCollisionBetween(10, 10);
-    map.setTileIndexCallback(4, ladderCallback, this);
-    map.setTileIndexCallback(3, ladder2Callback, this);
-    map.setTileIndexCallback(2, waterCallback, this);
-    map.setTileIndexCallback(28, waterCallback, this);
-    map.setTileIndexCallback(34, doorCallback, this);
-    map.setTileIndexCallback(56, powerup1Callback, this);
-    map.setTileIndexCallback(57, powerup2Callback, this);
-    map.setTileIndexCallback(58, powerup3Callback, this);
-    map.setTileIndexCallback(59, powerup4Callback, this);
+    map.setTileIndexCallback( 4, tileCallback, this);
+    map.setTileIndexCallback( 3, tileCallback, this);
+    map.setTileIndexCallback( 2, tileCallback, this);
+    map.setTileIndexCallback(28, tileCallback, this);
+    map.setTileIndexCallback(34, tileCallback, this);
+    map.setTileIndexCallback(56, tileCallback, this);
 
-    //  Un-comment this on to see the collision tiles
-    //layer.debug = true;
-  
     //  Player
     player = game.add.sprite(2, 48, 'player', 1);
     player.animations.add('left', [5,6], 8, true);
@@ -82,8 +90,6 @@ function create() {
     player.body.collideWorldBounds = true;
     player.body.setSize(10, 14, 2, 1);
 
-    //game.camera.follow(player);
-
     //  Allow cursors to scroll around the map
     cursors = game.input.keyboard.createCursorKeys();
     jumpButton = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
@@ -93,46 +99,35 @@ function create() {
         align: "left"
     });
     text.anchor.setTo(0, 0);
-
-
 }
 
 
-function powerup1Callback()
+function tileCallback(sprite, tile)
 {
-    powerup1 = true;
-}
-function powerup2Callback()
-{
-    powerup2 = true;
-}
-function powerup3Callback()
-{
-    powerup3 = true;
-}
-function powerup4Callback()
-{
-    powerup4 = true;
-}
+    var removeTile = false;
+    // har vi taget en powerup?
+    if(tile.index === 56) {
+        powerup1 = true;
+        removeTile = true;
+    }
+    // har vi gennemført?
+    // ...indsæt ny kode her
 
-function doorCallback()
-{
-    inDoor = true;
-}
-function ladderCallback()
-{
-    onLadder = true;
-}
-
-function ladder2Callback()
-{
-    onLadderTop = true;
-    onLadder = true;
-}
-
-function waterCallback()
-{
-    inWater = true;
+    // er vi i vand ?
+    if(tile.index === 28 || tile.index === 2 )
+        inWater = true;
+    // er vi på stige
+    if(tile.index === 4)
+        onLadder = true;
+    if (tile.index === 3) {
+        onLadderTop = true;
+        onLadder = true;
+    }
+    // skal vi fjerne blokken?
+    if(removeTile) {
+        tile.index = 1;
+        layer.dirty = true;
+    }
 }
 
 function update() {
@@ -140,26 +135,6 @@ function update() {
     game.physics.arcade.gravity.y = 1000;
     player.body.bounce.y = bounce;
    
-    if(powerup1)
-    {
-         
-    }
-	if(powerup2)
-    {
-         
-    }
-	if(powerup3)
-    {
-         
-    }
-    if(powerup4)
-    {
-         
-    }
-    if(inDoor)
-    {
-         
-    }
     if(onLadder){
         player.body.velocity.y = 0;
         game.physics.arcade.gravity.y = 0;
@@ -168,16 +143,7 @@ function update() {
         game.physics.arcade.gravity.y = 100;
         player.body.bounce.y = 0;
     }
-    text.setText(
-        "d="+(0+inDoor)
-        +",lt="+(0+onLadderTop)
-        +",l="+(0+onLadder)
-        +",w="+(0+inWater)
-        +",p1="+(0+powerup1)
-        +",p2="+(0+powerup2)
-        +",p3="+(0+powerup3)
-        +",p4="+(0+powerup4)
-        );
+    text.setText(""+"vand="+(0+inWater));
     
 
     player.body.velocity.x = 0;
@@ -273,16 +239,8 @@ function update() {
     onLadder = false;
     onLadderTop = false;
     inWater = false;
-    inDoor = false;
-    powerup1 = false;
-	powerup2 = false;
-	powerup3 = false;
-    powerup4 = false;
 }
 
 function render() {
     game.debug.text('Click to disable body1', 32, 32);
-
-
-
 }
